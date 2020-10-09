@@ -9,5 +9,6 @@
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
 
+
 Route::get('admin/index/send','admin/index/send');
 Route::get('admin/index/receive','admin/index/receive');

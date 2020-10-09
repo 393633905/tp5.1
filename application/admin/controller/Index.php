@@ -13,8 +13,34 @@ class Index
 {
     public function index(Request $request)
     {
+        print_r($request);
+
        return 'Hello TP5.1'.time();
 
+    }
+
+    public function msg(Request $request){
+
+        $params=$_POST;
+
+        $taskData=[
+            'method'=>'sendMsg',
+            'params'=>[
+                'phone'=>$params['phone'],
+                'code'=>$params['code']
+            ]
+        ];
+
+        $params['http_server']->task($taskData);
+
+        // 响应结果.
+        $data=[
+            'status'=>true,
+            'code'=>200,
+            'msg'=>'success',
+            'data'=>[]
+        ];
+        return json($data);
     }
 
     /**

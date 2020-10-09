@@ -7,18 +7,18 @@ use Swoole\Http\Response;
 use Swoole\Http\Server;
 use think\Container;
 
-class HttpServer{
+class WebSocketServer{
 
     private static $instance;
 
-    private $server = null;
+    private $ws = null;
 
     private function __construct($host,$port){
         // 创建HttpServer服务.
-        $this->server=new \Swoole\Http\Server($host,$port);
+        $this->ws=new \Swoole\WebSocket\Server($host,$port);
 
         // 添加HttpServer配置.
-        $this->server->set([
+        $this->ws->set([
             'work_num'=>2,
             'task_worker_num'=>2,
             'document_root'=>__DIR__.'/../public/static',//静态文件目录路径
@@ -26,13 +26,16 @@ class HttpServer{
         ]);
 
         // 回调监听.
-        $this->server->on('WorkerStart',[$this,'onWorkerStart']);//当work/task进程启动时回调
-        $this->server->on('request',[$this,'onRequest']);
-        $this->server->on('task',[$this,'onTask']);
-        $this->server->on('finish',[$this,'onFinish']);
+        $this->ws->on('WorkerStart',[$this,'onWorkerStart']);//当work/task进程启动时回调
+        $this->ws->on('open',[$this,'onOpen']);
+        $this->ws->on('message',[$this,'onMessage']);
+        $this->ws->on('request',[$this,'onRequest']);
+        $this->ws->on('task',[$this,'onTask']);
+        $this->ws->on('finish',[$this,'onFinish']);
+        $this->ws->on('close',[$this,'onClose']);
 
         // 开启服务.
-        $this->server->start();
+        $this->ws->start();
 
     }
 
@@ -45,11 +48,19 @@ class HttpServer{
         return self::$instance;
     }
 
-    public function onWorkerStart(Server $server,int $workId){
+    public function onWorkerStart($ws,int $workId){
         // 加载基础文件.
         require __DIR__ . '/../thinkphp/base.php';
     }
 
+
+    public function onOpen($ws, $request){
+        echo '有客户端连接：'.$request->fd;
+    }
+
+    public function onMessage($ws, $frame){
+        echo '收到消息'.$frame->data;
+    }
 
     public function onRequest(Request $request,Response $response){
         $requestUri=$request->server['request_uri'];
@@ -91,7 +102,7 @@ class HttpServer{
             }
         }
 
-        $_POST['http_server']=$this->server;
+        $_POST['http_server']=$this->ws;
 
         // 响应并缓存结果.
         ob_start();
@@ -116,7 +127,7 @@ class HttpServer{
 
         // 调用方法.
         if($task->$method($params) === true){
-            return '发送短信|success';
+            return '发送短信|success'.PHP_EOL;
         }
 
     }
@@ -124,6 +135,10 @@ class HttpServer{
     public function onFinish($serv, $task_id, $data){
         echo "AsyncTask[$task_id] Finish: $data".PHP_EOL;
     }
+
+    public function onClose($ws, $fd){
+        echo '有客户端离开：'.$fd.PHP_EOL;
+    }
 }
 
-HttpServer::getInstance();
+WebSocketServer::getInstance();
